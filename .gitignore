@@ -7,3 +7,5 @@ runtime/
 .pytest_cache/
 .DS_Store
 __MACOSX/
+*.egg-info/
+build/
