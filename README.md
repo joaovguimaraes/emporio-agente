@@ -361,20 +361,56 @@ resultado bruto das ferramentas. A primeira rodada tinha quatro problemas, todos
 
 ## 8. Uso de assistentes de código
 
-Usei o **Claude Code** (agente de programação da Anthropic, modelo Claude Opus) como par de programação
-durante todo o desafio. O fluxo foi:
+**Ferramenta:** [Claude Code](https://claude.com/claude-code), o agente de programação da Anthropic
+(modelo Claude Opus), rodando no meu ambiente local com acesso ao repositório, ao terminal e às APIs.
 
-1. **Leitura e mapeamento das armadilhas:** pedi ao Claude Code para ler o enunciado, o manual e todos os CSVs
-   e listar inconsistências e "pegadinhas" antes de escrever código. A maior parte das tabelas da seção 4 saiu
-   desse mapeamento, revisado por mim.
-2. **Decisões de arquitetura:** discutimos as alternativas (RAG puro, agente SQL, function calling,
-   frameworks); as justificativas da seção 3 refletem essas escolhas.
-3. **Implementação incremental com verificação:** cada módulo foi escrito e testado na hora com dados reais
-   (ex.: a extração do PDF foi testada nos modos padrão e layout antes de decidir; o bug do `NaT` apareceu
-   nesses testes). O histórico de commits mostra essa progressão.
-4. **Testes e avaliação:** os testes unitários e os scripts de avaliação/exemplos foram gerados pelo
-   assistente e conferidos rodando.
+**Como usei:** não usei a IA como autocomplete, e sim como um engenheiro a quem eu delego tarefas inteiras.
+Eu defino o objetivo e os critérios de qualidade, tomo as decisões de produto e custo, e só aceito o trabalho
+com evidência de que funciona (teste rodando, saída real do modelo, dado conferido). A IA escreveu a maior
+parte do código; o meu trabalho foi direcionar, decidir e verificar.
 
-Toda a saída foi revisada antes de entrar no repositório. A ferramenta acelerou bastante a parte mecânica
-(boilerplate, testes, README) e ajudou a pegar inconsistências nos dados que passariam despercebidas numa
-leitura rápida.
+### O fluxo, passo a passo
+
+1. **Começar pelos riscos, não pelo código.** Minha primeira instrução foi resolver o desafio "de olho em
+   pegadinhas e qualquer tipo de problema". Por isso, antes de qualquer código, todos os insumos foram lidos e
+   auditados: enunciado, manual e os 6 CSVs. Esse mapeamento virou a seção 4 (descrições trocadas, telefones
+   divergentes, categorias vazias, totais que não batem, e-mail compartilhado, PDF que extrai uma palavra por
+   linha) e definiu a arquitetura. A IA lê 6 tabelas e um PDF inteiros sem cansar; usar isso para auditoria,
+   e não só para gerar código, foi a escolha mais valiosa do processo.
+2. **Arquitetura discutida antes de implementada.** Comparamos RAG puro, agente SQL, function calling e
+   frameworks. Escolhi ferramentas fechadas com contas no Python (seção 3) porque o maior risco do domínio é o
+   agente inventar preço ou vazar dado de cliente. Um design que torna isso impossível é mais seguro do que um
+   prompt que pede para o modelo não fazer.
+3. **Entrega incremental, com commits.** Cada módulo (dados → políticas → regras → ferramentas → agente)
+   foi testado com os dados reais assim que ficou pronto e commitado. O histórico do Git mostra essa ordem.
+4. **Decisões de modelo tomadas com dados, não por preferência.**
+   - Comecei com o **Gemini** pela camada gratuita: queria que quem avalia conseguisse rodar o projeto sem custo.
+   - Rodando de verdade, apareceram três problemas: o modelo previsto tinha sido descontinuado, havia
+     incompatibilidade de *thought signatures* nas chamadas de ferramenta e as respostas levavam minutos.
+   - Troquei para o **Claude** e pedi explicitamente **o modelo mais barato** (Haiku 5.5). Atendimento é alto
+     volume e baixa complexidade, e o trabalho pesado já está no Python. Resultado: 2–3 s por resposta e 15/15
+     no roteamento.
+   - Mantive o Gemini como alternativa gratuita, em vez de descartá-lo.
+5. **Não confiar na saída do modelo sem conferir.** Os exemplos não foram simplesmente gerados e publicados:
+   cada transcrição foi comparada com o resultado bruto das ferramentas. Isso pegou quatro erros (seção 6),
+   o mais sério deles o agente chamando um ukulele de "saxofone" e contradizendo a cliente. Cada erro virou
+   uma correção na causa e um teste de regressão, não um remendo no texto.
+
+### Onde a IA errou (e como o processo pegou)
+
+Registro isto de propósito: mostra que o resultado vem do processo de verificação, não de confiar no output.
+
+| Erro da IA | Como foi pego |
+|---|---|
+| Datas vazias viravam `NaT`, que o pandas aceita como data, e a consulta de pedidos quebrava | Teste manual da ferramenta com pedidos ainda não enviados |
+| Um commit entrou com um teste falhando, porque o `\| tail` escondia o código de saída do `pytest` | Conferência da saída; a partir daí, commit só com a suíte verde |
+| Arquivos de build (`egg-info`) commitados por engano | Revisão do `git status` antes do commit seguinte |
+| O loop descartava a `thought_signature` do Gemini 3 (erro 400 no 2º turno) | Teste com a API real; correção coberta por teste |
+| Alucinação "ukulele → saxofone", categorias sem estoque citadas, endereço "não encontrado", chamado duplicado | Revisão das conversas contra os dados (seção 6) |
+
+### Em resumo
+
+A IA acelerou a implementação, os testes e a documentação. As decisões que definem o projeto foram minhas:
+o que priorizar (riscos e pegadinhas primeiro), qual arquitetura reduz o risco do domínio, qual modelo usar
+considerando custo, latência e reprodutibilidade para o avaliador, e o critério de "pronto", que é ter
+evidência de que funciona.
