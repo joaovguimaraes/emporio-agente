@@ -44,7 +44,10 @@ class Turn:
 class Agent:
     def __init__(self, conversation: Conversation, client: OpenAI | None = None, settings: config.LLMSettings | None = None):
         self.settings = settings or config.llm_settings()
-        self.client = client or OpenAI(api_key=self.settings.api_key, base_url=self.settings.base_url)
+        # Retries com backoff cobrem 429/503 ("high demand") que aparecem na camada gratuita.
+        self.client = client or OpenAI(
+            api_key=self.settings.api_key, base_url=self.settings.base_url, timeout=60, max_retries=4
+        )
         self.conversation = conversation
 
     def _complete(self, messages: list[dict]):
@@ -77,16 +80,12 @@ class Agent:
                 self.conversation.save()
                 return Turn(reply, traces)
 
-            self.conversation.append(
-                {
-                    "role": "assistant",
-                    "content": msg.content or "",
-                    "tool_calls": [
-                        {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
-                        for tc in msg.tool_calls
-                    ],
-                }
-            )
+            # Guarda a mensagem como veio do provedor: o Gemini 3 anexa uma `thought_signature`
+            # em `extra_content` de cada tool_call e rejeita (HTTP 400) o turno seguinte se ela
+            # não for devolvida. Reconstruir só com id/name/arguments perde esse campo.
+            raw = msg.model_dump(exclude_none=True)
+            assistant_msg = {"role": "assistant", "content": raw.get("content") or "", "tool_calls": raw["tool_calls"]}
+            self.conversation.append(assistant_msg)
             for tc in msg.tool_calls:
                 result = run_tool(tc.function.name, tc.function.arguments)
                 try:

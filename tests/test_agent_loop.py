@@ -22,8 +22,17 @@ class FakeClient:
     def create(self, **kwargs):
         self.calls.append(kwargs)
         if len(self.calls) == 1:
-            msg = NS(content=None, tool_calls=[_tool_call("buscar_produtos", {"consulta": "Takamine GD20"})])
-        else:
+            tc = _tool_call("buscar_produtos", {"consulta": "Takamine GD20"})
+            raw_tc = {
+                "id": tc.id, "type": "function",
+                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                "extra_content": {"google": {"thought_signature": "sig"}},
+            }
+            msg = NS(content=None, tool_calls=[tc], model_dump=lambda **_: {"role": "assistant", "tool_calls": [raw_tc]})
+        elif len(self.calls) == 2:
+            # O campo extra do provedor (ex.: thought_signature do Gemini 3) precisa voltar intacto.
+            assistant = next(m for m in kwargs["messages"] if m["role"] == "assistant")
+            assert assistant["tool_calls"][0]["extra_content"]["google"]["thought_signature"] == "sig"
             tool_msg = next(m for m in kwargs["messages"] if m["role"] == "tool")
             price = json.loads(tool_msg["content"])["resultados"][0]["preco_tabela"]
             msg = NS(content=f"Custa {price}.", tool_calls=None)

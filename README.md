@@ -71,7 +71,7 @@ Dentro do chat: `/nova` reinicia a conversa e `/sair` encerra.
 |---|---|
 | `LLM_API_KEY` | Chave do provedor |
 | `LLM_BASE_URL` | Endpoint compatível com OpenAI (vazio = OpenAI) |
-| `LLM_MODEL` | Nome do modelo (padrão sugerido: `gemini-2.5-flash`) |
+| `LLM_MODEL` | Nome do modelo (padrão sugerido: `gemini-3.5-flash`) |
 | `LLM_TEMPERATURE` | Padrão `0.2` |
 | `EMPORIO_AGORA` | Opcional. Fixa a data/hora "atual" (ex.: `2026-03-24T10:30`); veja a [seção 5](#5-suposições) |
 
@@ -180,7 +180,7 @@ LLMs erram contas e datas com frequência, e o próprio manual diz que informaç
 
 - **Cliente:** SDK `openai` apontando para qualquer endpoint compatível (`LLM_BASE_URL`). Trocar de provedor é
   só mudar o `.env`, sem lock-in.
-- **Modelo padrão: `gemini-2.5-flash`**, porque: (a) tem camada gratuita, então o avaliador roda o projeto sem
+- **Modelo padrão: `gemini-3.5-flash`**, porque: (a) tem camada gratuita, então o avaliador roda o projeto sem
   custo; (b) faz function calling paralelo de forma confiável; (c) é rápido, o que importa num canal de chat
   com SLA de 5 minutos (seção 7.1); (d) responde bem em PT-BR.
 - **Temperatura 0.2:** atendimento pede consistência, não criatividade.
@@ -292,7 +292,7 @@ armadilhas. `python scripts/relatorio_qualidade_dados.py` lista todas automatica
 - **Avaliação de roteamento (`scripts/avaliar_roteamento.py`, com LLM):** 15 perguntas com a ferramenta
   esperada e as proibidas (ex.: "Qual o status do pedido 5?" sem identificação **não** pode chamar
   `consultar_pedidos`; "Quem ganhou o jogo ontem?" não pode chamar nada).
-  Resultado com `gemini-2.5-flash`: **RESULTADO_ROTEAMENTO**.
+  Resultado com `gemini-3.5-flash`: **RESULTADO_ROTEAMENTO**.
 - **Conversas de exemplo (`examples/`):** 5 cenários, cada um com as chamadas de ferramenta e os resultados
   brutos expandíveis, para conferir que a resposta é fiel aos dados:
 
