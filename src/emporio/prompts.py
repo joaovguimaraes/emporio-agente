@@ -17,7 +17,8 @@ e apoia a equipe humana da loja.
 - Português do Brasil. Mensagens curtas e escaneáveis (é chat, não e-mail). Listas curtas quando ajudar.
 - No máximo 1 emoji por mensagem, e só quando combinar.
 - Formatação de WhatsApp: *negrito* com UM asterisco, listas com "-". Nada de títulos (#), tabelas ou "**".
-- Cumprimente pelo primeiro nome quando souber. Feche perguntando se pode ajudar em mais alguma coisa.
+- Cumprimente pelo primeiro nome quando souber. Termine com no máximo UMA pergunta: se você já fez uma \
+pergunta ao cliente, não acrescente "posso ajudar em mais alguma coisa?".
 
 # Quando usar cada ferramenta
 - Produto, preço, promoção, estoque, recomendação → `buscar_produtos` (ou `detalhar_produto`).
@@ -56,20 +57,24 @@ estiver fechada, diga quando ela reabre. Peça um contato se ainda não tiver.
 ou conceder descontos. Você não pode conceder descontos nem alterar pedidos.
 11. Ao recomendar, faça no máximo uma pergunta de qualificação por vez (nível, estilo, orçamento) e \
 apresente até 3–5 opções com preço, em vez de despejar o catálogo inteiro.
-
-# Contexto atual
-- Agora: {agora}. Loja {aberta}{prox}.
 - Os pedidos do sistema são tratados como compras online.
 """
 
+DYNAMIC_TEMPLATE = "# Contexto atual\n- Agora: {agora}. Loja {aberta}{prox}.\n"
 
-def build_system_prompt() -> str:
+
+def build_system_parts() -> tuple[str, str]:
+    """(parte estável, parte que muda a cada chamada) — separadas para permitir cache do prompt."""
     status = business.store_status(config.now())
     prox = f" — próxima abertura: {status['proxima_abertura']}" if status["proxima_abertura"] else ""
-    return SYSTEM_TEMPLATE.format(
-        persona=PERSONA_NAME,
-        toc=policy_index().table_of_contents(),
+    static = SYSTEM_TEMPLATE.format(persona=PERSONA_NAME, toc=policy_index().table_of_contents())
+    dynamic = DYNAMIC_TEMPLATE.format(
         agora=status["agora"],
         aberta="ABERTA agora" if status["aberta_agora"] else "FECHADA agora",
         prox=prox,
     )
+    return static, dynamic
+
+
+def build_system_prompt() -> str:
+    return "\n".join(build_system_parts())

@@ -27,20 +27,27 @@ class LLMSettings:
     model: str
     base_url: str | None
     temperature: float
+    provider: str = "openai"  # "anthropic" (SDK nativo) ou "openai" (qualquer API compatível)
+    effort: str = "low"  # só Anthropic: profundidade de raciocínio (low|medium|high...)
 
 
 def llm_settings() -> LLMSettings:
-    api_key = os.getenv("LLM_API_KEY", "").strip()
-    model = os.getenv("LLM_MODEL", "").strip()
+    provider = os.getenv("LLM_PROVIDER", "anthropic").strip().lower()
+    if provider == "anthropic":
+        api_key = (os.getenv("ANTHROPIC_API_KEY") or os.getenv("LLM_API_KEY") or "").strip()
+        model = os.getenv("LLM_MODEL", "").strip() or "claude-haiku-5-5"
+    else:
+        api_key = os.getenv("LLM_API_KEY", "").strip()
+        model = os.getenv("LLM_MODEL", "").strip()
     if not api_key or not model:
-        raise RuntimeError(
-            "Configure LLM_API_KEY e LLM_MODEL no arquivo .env (veja .env.example)."
-        )
+        raise RuntimeError("Configure a chave e o modelo no arquivo .env (veja .env.example).")
     return LLMSettings(
         api_key=api_key,
         model=model,
         base_url=os.getenv("LLM_BASE_URL", "").strip() or None,
         temperature=float(os.getenv("LLM_TEMPERATURE", "0.2")),
+        provider=provider,
+        effort=os.getenv("LLM_EFFORT", "low").strip(),
     )
 
 

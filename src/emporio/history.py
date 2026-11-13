@@ -32,18 +32,24 @@ class Conversation:
     def append(self, message: dict) -> None:
         self.messages.append(message)
 
+    @staticmethod
+    def _is_customer_message(m: dict) -> bool:
+        # No formato da Anthropic, resultados de ferramenta também vêm com role "user"
+        # (content = lista de tool_result); só texto puro é mensagem do cliente.
+        return m["role"] == "user" and isinstance(m["content"], str)
+
     def window(self) -> list[dict]:
         if len(self.messages) <= MAX_MESSAGES:
             return list(self.messages)
         tail = self.messages[-MAX_MESSAGES:]
         for i, m in enumerate(tail):
-            if m["role"] == "user":
+            if self._is_customer_message(m):
                 return tail[i:]
         return tail
 
     def rollback_to_last_user(self) -> None:
         """Em caso de erro no meio de um turno, descarta o turno incompleto."""
-        while self.messages and self.messages[-1]["role"] != "user":
+        while self.messages and not self._is_customer_message(self.messages[-1]):
             self.messages.pop()
         if self.messages:
             self.messages.pop()
