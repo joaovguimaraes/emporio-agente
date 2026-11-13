@@ -6,7 +6,7 @@
 
 **Cliente:** Oi! Quais opções de violões disponíveis custando até R$1000?
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `buscar_produtos({"categoria": "Violões", "preco_max": 1000})`
 
@@ -104,7 +104,7 @@ Se o orçamento não for um problema, a Yamaha C40 é a que eu escolheria. Quer 
 
 **Cliente:** E aquele Giannini GF-3D Sunburst, vocês têm?
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `buscar_produtos({"consulta": "Giannini GF-3D Sunburst", "incluir_indisponiveis": true})`
 

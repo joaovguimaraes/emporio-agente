@@ -6,7 +6,7 @@
 
 **Cliente:** Oi, cadê meu pedido 8? Meu e-mail é anacarol.ferreira@coldmail.com
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `consultar_pedidos({"identificacao": "anacarol.ferreira@coldmail.com", "numero_pedido": 8})`
 
@@ -57,7 +57,7 @@ Pode me confirmar se quer que eu abra o chamado agora? Se sim, o retorno pode se
 
 **Cliente:** Pode usar esse e-mail mesmo.
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `encaminhar_para_equipe({"motivo": "reclamacao", "resumo": "Cliente Ana (anacarol.ferreira@coldmail.com) reclama do atraso na entrega do pedido 8 (1x Kala KA-C Concert Mogno, categoria Ukuleles, R$ 349,90, cartão de débito). Status: enviado, rastreio BRJL5544332BR. Previsão de entrega era 28/02/2026, vencida há 24 dias. Solicita verificação com a transportadora.", "contato_cliente": "anacarol.ferreira@coldmail.com"})`
 

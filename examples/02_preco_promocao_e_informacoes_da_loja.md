@@ -6,7 +6,7 @@
 
 **Cliente:** Quanto custa o Takamine GD20?
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `buscar_produtos({"consulta": "Takamine GD20"})`
 
@@ -62,7 +62,7 @@ Não posso prometer desconto de campanha que não esteja no ar. Se quiser, posso
 
 **Cliente:** Beleza. Qual o endereço da loja? Vocês abrem sábado à tarde?
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `consultar_politicas({"pergunta": "Qual o endereço da loja e qual o horário de funcionamento, incluindo sábado à tarde?"})`
 

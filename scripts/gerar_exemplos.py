@@ -88,7 +88,7 @@ def render(title: str, description: str, transcript: list[tuple[str, str, list]]
     for user, reply, tools in transcript:
         lines += [f"**Cliente:** {user}", ""]
         if tools:
-            lines += ["<details><summary>🔧 ferramentas chamadas</summary>", ""]
+            lines += ["<details><summary>ferramentas chamadas</summary>", ""]
             for t in tools:
                 result = json.dumps(t.result, ensure_ascii=False, indent=1)
                 if len(result) > 1500:

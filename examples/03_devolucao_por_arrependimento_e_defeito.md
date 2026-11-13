@@ -17,7 +17,7 @@ Assim que você me enviar, eu vejo se ele está dentro do prazo de arrependiment
 
 **Cliente:** É o pedido 7, meu e-mail é leticia.rocha@jmail.com
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `avaliar_troca_devolucao({"numero_pedido": 7, "identificacao": "leticia.rocha@jmail.com", "motivo": "arrependimento"})`
 
@@ -63,7 +63,7 @@ Se o ukulele tiver algum defeito de fabricação, a troca ou a garantia podem se
 
 **Cliente:** Na verdade o ukulele tá com um trastejamento estranho desde que chegou, acho que é defeito.
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `avaliar_troca_devolucao({"numero_pedido": 7, "identificacao": "leticia.rocha@jmail.com", "motivo": "defeito"})`
 
@@ -107,7 +107,7 @@ Quer que eu abra o chamado para a equipe? Se quiser, me diga também o melhor co
 
 **Cliente:** Pode encaminhar sim, meu telefone é (67) 99789-0123.
 
-<details><summary>🔧 ferramentas chamadas</summary>
+<details><summary>ferramentas chamadas</summary>
 
 `encaminhar_para_equipe({"motivo": "troca_devolucao", "resumo": "Pedido 7 (Shelby SU-21S Soprano Sunburst, ukulele, R$ 159,90, entregue em 17/02/2026, pago em 3x no cartão). Cliente Letícia Rocha relata defeito: trastejamento estranho desde o recebimento. Compra fora do prazo de 30 dias para troca direta, mas dentro da garantia legal de 90 dias. Solicita atendimento de garantia/defeito. Verificação de identidade feita com e-mail leticia.rocha@jmail.com.", "contato_cliente": "(67) 99789-0123"})`
 
