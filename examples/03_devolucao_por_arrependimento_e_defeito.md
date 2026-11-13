@@ -1,10 +1,12 @@
-# Conversa 3 — Situação não trivial
+# Conversation 3: return request and defect (non-trivial)
 
-> Situação não trivial: verificação de identidade + aplicação das regras de devolução/garantia com datas reais
+> Identity check, then the return rules applied to a real order with real dates: the 7-day withdrawal period has expired, the customer reports a defect, the case falls under the 90-day legal warranty and a ticket is opened.
 >
-> Modelo: `claude-haiku-5-5` · data de referência simulada: 24/03/2026 10:30 (America/Campo_Grande)
+> The conversation is in Portuguese, the store's language. Expand "tools called" to see each tool call and its raw result.
+>
+> Model: `claude-haiku-5-5` · simulated reference date: 24/03/2026 10:30 (America/Campo_Grande)
 
-**Cliente:** Me arrependi da minha compra, posso devolver meu pedido?
+**Customer:** Me arrependi da minha compra, posso devolver meu pedido?
 
 **Lia:** Oi! Posso sim verificar isso pra você. Pra consultar o pedido, preciso de duas informações:
 
@@ -15,9 +17,9 @@ Assim que você me enviar, eu vejo se ele está dentro do prazo de arrependiment
 
 ---
 
-**Cliente:** É o pedido 7, meu e-mail é leticia.rocha@jmail.com
+**Customer:** É o pedido 7, meu e-mail é leticia.rocha@jmail.com
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `avaliar_troca_devolucao({"numero_pedido": 7, "identificacao": "leticia.rocha@jmail.com", "motivo": "arrependimento"})`
 
@@ -61,9 +63,9 @@ Se o ukulele tiver algum defeito de fabricação, a troca ou a garantia podem se
 
 ---
 
-**Cliente:** Na verdade o ukulele tá com um trastejamento estranho desde que chegou, acho que é defeito.
+**Customer:** Na verdade o ukulele tá com um trastejamento estranho desde que chegou, acho que é defeito.
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `avaliar_troca_devolucao({"numero_pedido": 7, "identificacao": "leticia.rocha@jmail.com", "motivo": "defeito"})`
 
@@ -105,9 +107,9 @@ Quer que eu abra o chamado para a equipe? Se quiser, me diga também o melhor co
 
 ---
 
-**Cliente:** Pode encaminhar sim, meu telefone é (67) 99789-0123.
+**Customer:** Pode encaminhar sim, meu telefone é (67) 99789-0123.
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `encaminhar_para_equipe({"motivo": "troca_devolucao", "resumo": "Pedido 7 (Shelby SU-21S Soprano Sunburst, ukulele, R$ 159,90, entregue em 17/02/2026, pago em 3x no cartão). Cliente Letícia Rocha relata defeito: trastejamento estranho desde o recebimento. Compra fora do prazo de 30 dias para troca direta, mas dentro da garantia legal de 90 dias. Solicita atendimento de garantia/defeito. Verificação de identidade feita com e-mail leticia.rocha@jmail.com.", "contato_cliente": "(67) 99789-0123"})`
 

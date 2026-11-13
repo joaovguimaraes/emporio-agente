@@ -1,12 +1,14 @@
-# Conversa 1 — Consulta ao catálogo com filtro de preço
+# Conversation 1: catalog search with a price filter
 
-> Consulta ao catálogo com filtro de preço, recomendação e cálculo de PIX/parcelamento
+> Catalog search with a price filter, a recommendation and PIX/installment prices. The customer asks for guitars (violões) up to R$ 1,000, asks for a beginner recommendation for MPB, then asks about a model that is sold out.
 >
-> Modelo: `claude-haiku-5-5` · data de referência simulada: 24/03/2026 10:30 (America/Campo_Grande)
+> The conversation is in Portuguese, the store's language. Expand "tools called" to see each tool call and its raw result.
+>
+> Model: `claude-haiku-5-5` · simulated reference date: 24/03/2026 10:30 (America/Campo_Grande)
 
-**Cliente:** Oi! Quais opções de violões disponíveis custando até R$1000?
+**Customer:** Oi! Quais opções de violões disponíveis custando até R$1000?
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `buscar_produtos({"categoria": "Violões", "preco_max": 1000})`
 
@@ -90,7 +92,7 @@ Você pretende tocar com cordas de nylon ou de aço? Assim eu consigo filtrar me
 
 ---
 
-**Cliente:** Sou iniciante e quero tocar MPB em casa. Qual você indica? Quanto fica no PIX?
+**Customer:** Sou iniciante e quero tocar MPB em casa. Qual você indica? Quanto fica no PIX?
 
 **Lia:** Para começar e tocar MPB em casa, eu iria de nylon. As cordas são mais macias nos dedos e o som combina com o estilo. Entre as opções, eu indico:
 
@@ -102,9 +104,9 @@ Se o orçamento não for um problema, a Yamaha C40 é a que eu escolheria. Quer 
 
 ---
 
-**Cliente:** E aquele Giannini GF-3D Sunburst, vocês têm?
+**Customer:** E aquele Giannini GF-3D Sunburst, vocês têm?
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `buscar_produtos({"consulta": "Giannini GF-3D Sunburst", "incluir_indisponiveis": true})`
 

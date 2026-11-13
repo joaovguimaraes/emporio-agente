@@ -1,36 +1,39 @@
-# Empório da Música: agente de atendimento
+# Empório da Música: customer service agent
 
-Protótipo de um agente de atendimento por mensagem (estilo WhatsApp) para a Empório da Música, loja de
-instrumentos em Campo Grande/MS. A assistente se chama Lia.
+A prototype of a text-message customer service agent (WhatsApp style) for Empório da Música, a musical
+instrument store in Campo Grande, Brazil. The assistant is called Lia.
 
-Ela consulta catálogo, pedidos e promoções, aplica as regras do manual de políticas (trocas, garantia,
-pagamento, frete, horário), recusa assuntos fora do escopo e encaminha para a equipe quando precisa.
+She looks up the catalog, orders and promotions, applies the rules from the store policy manual (returns,
+warranty, payment, shipping, opening hours), turns down off-topic requests and hands over to the staff when
+needed.
+
+The agent talks to customers in Brazilian Portuguese, since that is the store's audience. Everything else in
+the repository is documented in English.
 
 ```
-Cliente: Quanto custa o Takamine GD20?
-Lia:     O Takamine GD20 está em estoque. R$ 2.199,00, ou R$ 2.089,05 no PIX (5% de desconto),
-         ou até 12x de R$ 183,25 sem juros. ...
+Customer: Quanto custa o Takamine GD20?                      (How much is the Takamine GD20?)
+Lia:      O Takamine GD20 está em estoque. R$ 2.199,00, ou R$ 2.089,05 no PIX (5% de desconto),
+          ou até 12x de R$ 183,25 sem juros. ...
 ```
 
-As conversas de exemplo, com as ferramentas chamadas em cada turno, estão em [`examples/`](examples/).
+The example conversations, including the tools called on each turn, are in [`examples/`](examples/).
 
-## Sumário
+## Contents
 
-1. [Como rodar](#1-como-rodar)
-2. [Estrutura](#2-estrutura)
-3. [Decisões técnicas](#3-decisões-técnicas)
-4. [Problemas nos dados](#4-problemas-nos-dados)
-5. [Suposições](#5-suposições)
-6. [Avaliação](#6-avaliação)
-7. [Limitações e próximos passos](#7-limitações-e-próximos-passos)
-8. [Uso de assistentes de código](#8-uso-de-assistentes-de-código)
+1. [How to run](#1-how-to-run)
+2. [Structure](#2-structure)
+3. [Technical decisions](#3-technical-decisions)
+4. [Data issues](#4-data-issues)
+5. [Assumptions](#5-assumptions)
+6. [Evaluation](#6-evaluation)
+7. [Limitations and next steps](#7-limitations-and-next-steps)
+8. [Use of coding assistants](#8-use-of-coding-assistants)
 
-## 1. Como rodar
+## 1. How to run
 
-Precisa de Python 3.10+ e de uma chave de LLM. O padrão é o Claude Haiku 5.5, da Anthropic
-(chave em https://console.anthropic.com/settings/keys). Quem não tiver chave paga pode usar o Gemini, que tem
-camada gratuita (https://aistudio.google.com/apikey), ou qualquer API compatível com OpenAI. As duas opções
-estão no `.env.example`.
+You need Python 3.10+ and an LLM API key. The default is Anthropic's Claude Haiku 5.5 (key at
+https://console.anthropic.com/settings/keys). If you don't have a paid key, you can use Gemini, which has a
+free tier (https://aistudio.google.com/apikey), or any OpenAI-compatible API. Both options are in `.env.example`.
 
 ```bash
 git clone https://github.com/joaovguimaraes/emporio-agente.git
@@ -38,278 +41,281 @@ cd emporio-agente
 python -m venv .venv
 # Windows: .venv\Scripts\activate   |   Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env    # preencher ANTHROPIC_API_KEY (ou configurar a opção 2)
+cp .env.example .env    # fill in ANTHROPIC_API_KEY (or set up option 2)
 ```
 
-Chat no terminal:
+Terminal chat:
 
 ```bash
-python -m emporio                        # ou só: emporio
-python -m emporio --debug                # mostra as ferramentas chamadas
-python -m emporio --sessao joao          # retoma a conversa "joao"
-python -m emporio --sessao joao --nova   # apaga o histórico e recomeça
+python -m emporio                         # or just: emporio
+python -m emporio --debug                 # shows the tools being called
+python -m emporio --sessao joao           # resumes the "joao" conversation
+python -m emporio --sessao joao --nova    # clears the history and starts over
 ```
 
-Dentro do chat, `/nova` reinicia e `/sair` encerra.
+Inside the chat, `/nova` restarts and `/sair` exits.
 
-Outros comandos:
+Other commands:
 
-| Comando | O que faz | Precisa de chave |
+| Command | What it does | Needs a key |
 |---|---|---|
-| `pytest` | 39 testes (regras, ferramentas, busca no manual, loop do agente com LLM falso) | não |
-| `python scripts/relatorio_qualidade_dados.py` | lista as inconsistências dos CSVs e do manual | não |
-| `python scripts/gerar_exemplos.py` | regera as 5 conversas de `examples/` | sim |
-| `python scripts/avaliar_roteamento.py` | confere se o agente escolhe a ferramenta certa (15 casos) | sim |
+| `pytest` | 39 tests (business rules, tools, manual search, agent loop with a fake LLM) | no |
+| `python scripts/relatorio_qualidade_dados.py` | lists the inconsistencies found in the CSVs and the manual | no |
+| `python scripts/gerar_exemplos.py` | regenerates the 5 conversations in `examples/` | yes |
+| `python scripts/avaliar_roteamento.py` | checks whether the agent picks the right tool (15 cases) | yes |
 
-Variáveis do `.env`:
+`.env` variables:
 
-| Variável | Uso |
+| Variable | Use |
 |---|---|
-| `LLM_PROVIDER` | `anthropic` (padrão) ou `openai` (qualquer API compatível) |
-| `ANTHROPIC_API_KEY` | chave da Anthropic |
-| `ANTHROPIC_WORKSPACE_ID` | só se a chave não estiver ligada a um workspace |
-| `LLM_MODEL` | padrão `claude-haiku-5-5`; com Gemini, `gemini-3.5-flash` |
-| `LLM_EFFORT` | só Anthropic, nível de raciocínio (padrão `low`) |
-| `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_TEMPERATURE` | só para o provedor `openai` |
-| `EMPORIO_AGORA` | opcional, fixa a data/hora atual (ver seção 5) |
+| `LLM_PROVIDER` | `anthropic` (default) or `openai` (any compatible API) |
+| `ANTHROPIC_API_KEY` | Anthropic key |
+| `ANTHROPIC_WORKSPACE_ID` | only if the key is not tied to a workspace |
+| `LLM_MODEL` | default `claude-haiku-5-5`; with Gemini, `gemini-3.5-flash` |
+| `LLM_EFFORT` | Anthropic only, reasoning level (default `low`) |
+| `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_TEMPERATURE` | only for the `openai` provider |
+| `EMPORIO_AGORA` | optional, pins the current date/time (see section 5) |
 
-## 2. Estrutura
+## 2. Structure
 
 ```
 src/emporio/
-  config.py     configuração, provedor, fuso de Campo Grande, data de referência
-  data.py       leitura dos CSVs e checagens de qualidade
-  policies.py   PDF -> seções -> busca BM25, mais as notas de correção do manual
-  business.py   regras fixas: preço, PIX, parcelamento, horário, prazos de troca
-  tools.py      as 8 ferramentas e os schemas enviados ao modelo
-  prompts.py    prompt de sistema (persona e regras)
-  agent.py      loop de function calling (backends Anthropic e OpenAI-compatível)
-  history.py    histórico da conversa em JSON
-  cli.py        interface de terminal
-scripts/        exemplos, avaliação de roteamento, relatório de dados
-tests/          testes sem rede
-examples/       conversas geradas
+  config.py     settings, provider, Campo Grande time zone, reference date
+  data.py       CSV loading and data quality checks
+  policies.py   PDF -> sections -> BM25 search, plus the manual corrections
+  business.py   fixed rules: price, PIX, installments, opening hours, return deadlines
+  tools.py      the 8 tools and the schemas sent to the model
+  prompts.py    system prompt (persona and rules)
+  agent.py      function calling loop (Anthropic and OpenAI-compatible backends)
+  history.py    conversation history in JSON
+  cli.py        terminal interface
+scripts/        examples, routing evaluation, data report
+tests/          offline tests
+examples/       generated conversations
 ```
 
-O fluxo de uma mensagem: o CLI chama `Agent.respond()`, que manda a conversa para o modelo com as 8
-ferramentas. Se o modelo pedir uma ferramenta, ela roda em Python sobre os dados tratados e o resultado volta
-para o modelo, até ele responder em texto (no máximo 6 rodadas).
+How a message flows: the CLI calls `Agent.respond()`, which sends the conversation to the model along with
+the 8 tools. When the model asks for a tool, it runs in Python on the cleaned data and the result goes back to
+the model, until it answers in text (at most 6 rounds).
 
-Ferramentas: `buscar_produtos`, `detalhar_produto`, `listar_categorias`, `consultar_pedidos`,
-`avaliar_troca_devolucao`, `consultar_politicas`, `status_da_loja` e `encaminhar_para_equipe`.
+Tools (names in Portuguese, like the rest of the domain): `buscar_produtos` (search products),
+`detalhar_produto` (product details), `listar_categorias` (list categories), `consultar_pedidos` (look up
+orders), `avaliar_troca_devolucao` (check return/exchange eligibility), `consultar_politicas` (search the
+policy manual), `status_da_loja` (is the store open now) and `encaminhar_para_equipe` (open a ticket for the
+staff).
 
-## 3. Decisões técnicas
+## 3. Technical decisions
 
-### Function calling, com ferramentas separadas para dados e para políticas
+### Function calling, with separate tools for data and for policies
 
-O ponto central do desafio é o agente saber quando consultar dados e quando consultar as políticas. Com
-function calling essa escolha fica explícita: dá para ver no `--debug` e nos exemplos qual ferramenta foi
-usada em cada pergunta.
+The core of the challenge is knowing when to look up data and when to look up policies. Function calling
+makes that choice explicit: `--debug` and the examples show which tool was used for each question.
 
-- Produtos, pedidos e promoções ficam em ferramentas que filtram os CSVs com pandas. Não usei RAG para isso:
-  "violões até R$ 1.000" é um filtro, e busca semântica sobre linhas de CSV daria resultados imprecisos.
-- O manual de políticas é consultado por busca (detalhes abaixo).
-- Descartei um agente de SQL porque ele teria acesso livre à tabela de clientes. Com ferramentas fechadas,
-  o modelo simplesmente não tem como listar clientes ou ver um pedido sem a verificação de identidade,
-  independente do que o usuário escreva.
-- Não usei LangChain/LangGraph. É um agente só, com 8 ferramentas, e um loop próprio de ~150 linhas
-  (`agent.py`) é mais fácil de ler e de testar. Se o fluxo crescer (vários agentes, aprovação humana no
-  meio), eu reavaliaria.
+- Products, orders and promotions are served by tools that filter the CSVs with pandas. I didn't use RAG for
+  this: "guitars up to R$ 1,000" is a filter, and semantic search over CSV rows would be imprecise.
+- The policy manual is searched (details below).
+- I ruled out a SQL agent because it would have free access to the customer table. With closed tools, the
+  model simply has no way to list customers or see an order without the identity check, whatever the user
+  writes.
+- I didn't use LangChain/LangGraph. This is a single agent with 8 tools, and a ~150-line loop of my own
+  (`agent.py`) is easier to read and test. If the flow grew (several agents, human approval in the middle),
+  I would reconsider.
 
-### Contas e datas em Python
+### Math and dates in Python
 
-Preço promocional, PIX, parcelamento, prazos de devolução e garantia e horário da loja são calculados em
-`business.py` e chegam prontos para o modelo (`"R$ 2.089,05"`, `"até 12x de R$ 183,25"`,
-`"Recebido há 35 dias (limite: 7)"`). Modelo de linguagem erra conta e data com frequência, e o próprio
-manual diz que preço errado pode configurar propaganda enganosa. Essas regras têm testes.
+Promo price, PIX price, installments, return and warranty deadlines and opening hours are computed in
+`business.py` and reach the model already formatted (`"R$ 2.089,05"`, `"até 12x de R$ 183,25"`,
+`"Recebido há 35 dias (limite: 7)"`). Language models often get arithmetic and dates wrong, and the manual
+itself says a wrong price can count as misleading advertising. These rules are covered by tests.
 
-Regras implementadas: PIX de 5% que não acumula com promoção; parcelamento pelas faixas da seção 3.1
-(até 3x com parcela mínima de R$ 50, 4 a 6x de R$ 80, 7 a 12x de R$ 100); arrependimento em 7 dias do
-recebimento; troca por defeito em 30 dias da compra; garantia legal de 90 dias; feriados nacionais, de MS e
-o aniversário de Campo Grande.
+Rules implemented: 5% PIX discount that doesn't stack with promotions; installments following section 3.1
+(up to 3x with a R$ 50 minimum per installment, 4 to 6x with R$ 80, 7 to 12x with R$ 100); 7-day right of
+withdrawal from delivery; 30-day exchange for defects from purchase; 90-day legal warranty; national and
+Mato Grosso do Sul holidays plus Campo Grande's anniversary.
 
-### Busca no manual: seções + BM25
+### Manual search: sections + BM25
 
-1. A extração padrão do `pypdf` devolve uma palavra por linha neste PDF. Usei o modo layout.
-2. Cada subseção numerada do manual vira um trecho (25 no total), em vez de cortar em blocos de N tokens,
-   que partiriam regras no meio.
-3. A busca é BM25 com acentos removidos e um stemming simples por prefixo (`devolver` e `devolução` viram
-   `devol`). Para 25 trechos curtos isso resolve bem e evita depender de uma API de embeddings.
-4. Perguntas com dois assuntos ("endereço e horário de sábado?") faziam um assunto sumir do top 3. Acrescentei
-   uma etapa de cobertura: se um termo da pergunta não aparece em nenhum trecho escolhido, o melhor trecho
-   para esse termo entra também.
-5. O manual tem contradições. As decisões que tomei ficam em `policies.ERRATA` e vão junto com o trecho
-   recuperado, para a resposta ser sempre a mesma.
+1. `pypdf`'s default extraction returns one word per line for this PDF. I used layout mode.
+2. Each numbered subsection of the manual becomes one chunk (25 in total), instead of fixed N-token chunks
+   that would cut rules in half.
+3. Search is BM25 with accents stripped and simple prefix stemming (`devolver` and `devolução` both become
+   `devol`). For 25 short chunks this works well and avoids depending on an embeddings API.
+4. Questions with two subjects ("address and Saturday hours?") made one subject drop out of the top 3. I
+   added a coverage step: if a query term doesn't appear in any selected chunk, the best chunk for that term
+   is added too.
+5. The manual contradicts itself in places. My decisions live in `policies.ERRATA` and are attached to the
+   retrieved chunk, so the answer is always the same.
 
-### Modelo
+### Model
 
-Uso o Claude Haiku 5.5 pelo SDK oficial da Anthropic. Escolhi pelo custo (é o modelo mais barato da
-Anthropic) e pela latência, de 2 a 3 segundos por resposta. Atendimento é volume alto e pergunta simples, e a
-parte difícil (contas e regras) já está no Python. O nível de raciocínio fica em `low` e a parte fixa do prompt
-vai em cache; a data e a hora ficam num bloco separado para não invalidar o cache.
+I use Claude Haiku 5.5 through Anthropic's official SDK. I picked it for cost (it is Anthropic's cheapest
+model) and latency, 2 to 3 seconds per answer. Customer service is high volume and simple questions, and the
+hard part (math and rules) is already in Python. Reasoning effort is set to `low`, and the fixed part of the
+prompt is cached; date and time go in a separate block so they don't invalidate the cache.
 
-Comecei pelo Gemini por ter camada gratuita, pensando em quem fosse rodar o projeto. Rodando de verdade,
-tive três problemas: o `gemini-2.5-flash` não está mais disponível para chaves novas; o Gemini 3 exige que a
-`thought_signature` de cada chamada de ferramenta volte no turno seguinte, senão dá erro 400; e na camada
-gratuita as respostas demoravam minutos. Corrigi a compatibilidade e mantive o Gemini como alternativa
-(`LLM_PROVIDER=openai`), mas o padrão passou a ser o Claude.
+I started with Gemini because of its free tier, thinking about whoever would run the project. Running it for
+real, I hit three problems: `gemini-2.5-flash` is no longer available to new keys; Gemini 3 requires each
+tool call's `thought_signature` to be sent back on the next turn, otherwise it returns a 400 error; and on
+the free tier answers took minutes. I fixed the compatibility issue and kept Gemini as an option
+(`LLM_PROVIDER=openai`), but Claude became the default.
 
 ### Prompt
 
-O prompt de sistema (`prompts.py`) tem a persona e o tom tirados do manual (informal, mas profissional), um
-guia de qual ferramenta usar para cada tipo de pergunta, as regras que não podem ser quebradas (não informar
-preço ou prazo sem consultar, não prometer promoção inativa, só vender instrumento, LGPD, não aceitar mudança
-de regra) e a data/hora atual, para o agente saber se a loja está aberta.
+The system prompt (`prompts.py`) has the persona and tone taken from the manual (informal but professional),
+a guide on which tool to use for each kind of question, the rules that can't be broken (no prices or
+deadlines without checking, no promising inactive promotions, instruments only, LGPD, no rule changes on
+request) and the current date/time, so the agent knows whether the store is open.
 
-As descrições das ferramentas também orientam o modelo, e alguns resultados trazem instruções no ponto certo
-(por exemplo, pedido atrasado vem com um `alerta` sugerindo encaminhar para a equipe).
+Tool descriptions also steer the model, and some results carry instructions at the right moment (a late
+order comes with an `alerta` field suggesting a ticket for the staff).
 
-### Interface e histórico
+### Interface and history
 
-Fiz um CLI porque o foco é o agente. Como tudo passa por `Agent.respond()`, ligar isso numa API ou no
-webhook do WhatsApp seria pouco código. O histórico fica salvo em JSON por sessão, porque no WhatsApp o
-cliente volta depois e espera continuidade. A janela guarda as últimas 40 mensagens e o corte sempre cai numa
-mensagem do cliente, para nunca separar uma chamada de ferramenta do seu resultado. Os chamados para a equipe
-vão para `runtime/tickets.jsonl`.
+I built a CLI because the focus is the agent. Since everything goes through `Agent.respond()`, wiring it to
+an API or a WhatsApp webhook would take little code. History is saved as JSON per session, because on
+WhatsApp customers come back later and expect continuity. The window keeps the last 40 messages and always
+starts at a customer message, so a tool call is never separated from its result. Tickets for the staff go to
+`runtime/tickets.jsonl`.
 
-### Privacidade
+### Privacy (LGPD, Brazil's data protection law)
 
-- Dado de pedido só sai com número do pedido mais e-mail ou telefone do cadastro.
-- A mensagem de erro é a mesma para "pedido não existe" e "pedido é de outra pessoa", para não dar para
-  descobrir pedidos ou e-mails cadastrados.
-- Nenhuma ferramenta devolve e-mail ou telefone de cliente, só o primeiro nome.
-- Os clientes 11 e 43 têm o mesmo e-mail; nesse caso o agente pede o número do pedido ou o telefone.
+- Order data is only returned with the order number plus the e-mail or phone on file.
+- The error message is the same for "order doesn't exist" and "order belongs to someone else", so nobody
+  can probe for orders or registered e-mails.
+- No tool returns a customer's e-mail or phone, only the first name.
+- Customers 11 and 43 share an e-mail address; in that case the agent asks for the order number or phone.
 
-## 4. Problemas nos dados
+## 4. Data issues
 
-Antes de programar, li todos os arquivos procurando inconsistências. O script
-`scripts/relatorio_qualidade_dados.py` lista o que foi encontrado.
+Before writing code, I went through every file looking for inconsistencies.
+`scripts/relatorio_qualidade_dados.py` lists what was found.
 
 ### CSVs
 
-| Problema | Exemplo | O que fiz |
+| Issue | Example | What I did |
 |---|---|---|
-| Descrição de outra marca | 139 "Bateria Yamaha" descrita como Pearl; 142 "Korg" descrito como Roland de 88 teclas (specs dizem 61); 6 produtos ao todo | Detecto a marca divergente, escondo a descrição e uso só nome e specs |
-| Descontinuado com estoque | 136, com 13 unidades | Tratado como indisponível |
-| Ativo com estoque zero | 96, Giannini GF-3D | Aparece como esgotado, com alternativas parecidas |
-| "Em breve" com estoque e já vendido | 130, nos pedidos 3 e 14 | Não é oferecido; os pedidos continuam consultáveis |
-| Categorias sem produto | sopros e cordas orquestrais | O agente só cita categorias com itens à venda |
-| Promoções inativas e repetidas | 21 de 25 inativas; 93, 96 e 99 com duas cada | Só vale `is_active=1`; com duas ativas, a maior |
-| Total diferente da soma dos itens | pedido 3 (3.450 x 3.498), pedido 20 (1.400 x 1.488) | Mostro o total registrado |
-| Parcelas abaixo do mínimo | pedidos 9, 16 e 18 | Só reportado, é histórico |
-| E-mail repetido | clientes 11 e 43 | Peço número do pedido ou telefone |
-| Pedidos parados | pedido 8 com entrega vencida; pendentes há semanas | A ferramenta marca o atraso e o agente oferece encaminhar |
-| Datas vazias | pedidos não enviados | O pandas gerava `NaT`, que passa como data e quebrava a consulta; converto para `None` |
-| Arquivos do zip | `__MACOSX`, `.DS_Store`, nome do PDF com acento em Unicode NFD, espaços nos nomes | Copiei para `data/` com nomes simples |
+| Description mentions another brand | 139 "Yamaha drum kit" described as Pearl; 142 "Korg" described as an 88-key Roland (specs say 61); 6 products in total | Detect the mismatching brand, hide the description and use only name and specs |
+| Discontinued but in stock | 136, with 13 units | Treated as unavailable |
+| Active with zero stock | 96, Giannini GF-3D | Shown as sold out, with similar alternatives |
+| "Coming soon" with stock and already sold | 130, in orders 3 and 14 | Not offered; existing orders can still be looked up |
+| Categories with no products | woodwinds, brass, orchestral strings | The agent only mentions categories with items for sale |
+| Inactive and duplicated promotions | 21 of 25 inactive; 93, 96 and 99 have two each | Only `is_active=1` counts; if two are active, the larger one |
+| Order total differs from the sum of items | order 3 (3,450 vs 3,498), order 20 (1,400 vs 1,488) | Show the recorded total |
+| Installments below the minimum | orders 9, 16 and 18 | Reported only, it's historical data |
+| Shared e-mail | customers 11 and 43 | Ask for order number or phone |
+| Stalled orders | order 8 past its delivery date; orders pending for weeks | The tool flags the delay and the agent offers to escalate |
+| Empty dates | orders not yet shipped | pandas produced `NaT`, which passes as a date and broke the lookup; converted to `None` |
+| Zip contents | `__MACOSX`, `.DS_Store`, PDF name in decomposed Unicode (NFD), spaces in file names | Copied to `data/` with simple names |
 
-### Manual de políticas
+### Policy manual
 
-| Problema | Decisão |
+| Issue | Decision |
 |---|---|
-| Dois telefones: 3341-4444 (capa e tabela) e 3321-4500 (seção 7) | Uso 3341-4444, que aparece nas duas fontes de dados da empresa |
-| E-mail com acento na tabela (`empóriodamusica`) | Uso a versão sem acento, da capa |
-| Tabela fala em parcela mínima de R$ 100, a seção 3.1 tem faixas | Vale a 3.1, que é mais específica |
-| "Até 3x sem valor mínimo (exceto abaixo de R$ 50)" | Interpretei como mínimo de R$ 50 |
-| Frete grátis "acima de R$ 500" e taxa "abaixo de R$ 500"; R$ 500 exatos ficam sem regra | Frete grátis, a leitura mais favorável ao cliente (art. 47 do CDC) |
-| A 4.2 manda o cliente ao fabricante depois de 30 dias, mas a 8.1 dá 90 dias de garantia legal | Nos 90 dias a loja continua responsável; o agente oferece encaminhar |
-| "Black Friday com desconto em todo o catálogo" | Só vale promoção ativa no sistema, como manda a seção 7.3 |
-| "Sugerir lojas parceiras", mas não há lista | O agente não inventa nomes |
+| Two phone numbers: 3341-4444 (cover and company table) and 3321-4500 (section 7) | Use 3341-4444, which appears in both company data sources |
+| E-mail with an accent in the table (`empóriodamusica`) | Use the version without the accent, from the cover |
+| Table says R$ 100 minimum installment, section 3.1 has tiers | Section 3.1 wins, it's more specific |
+| "Up to 3x with no minimum (except below R$ 50)" | Read as a R$ 50 minimum |
+| Free shipping "above R$ 500" and a fee "below R$ 500"; exactly R$ 500 has no rule | Free shipping, the reading most favorable to the customer (Consumer Code, art. 47) |
+| 4.2 sends the customer to the manufacturer after 30 days, but 8.1 gives a 90-day legal warranty | The store is still responsible within the 90 days; the agent offers to escalate |
+| "Black Friday discounts on the whole catalog" | Only promotions active in the system count, as section 7.3 requires |
+| "Suggest partner stores", but there is no list | The agent doesn't make up store names |
 
-## 5. Suposições
+## 5. Assumptions
 
-- Data de referência: os pedidos vão de outubro/2025 a março/2026. Em uso normal o agente usa a data real.
-  Nos exemplos e na avaliação fixei `EMPORIO_AGORA=2026-03-24T10:30` (logo depois do último pedido) para os
-  prazos fazerem sentido e os resultados serem reproduzíveis.
-- Não existe data de recebimento nos dados. Para pedidos entregues, uso `estimated_delivery`.
-- Considero todos os pedidos do sistema como compras online, então o direito de arrependimento se aplica.
-- Status: `pending` aguarda pagamento, `confirmed` está pago e em separação, `shipped` foi enviado,
-  `delivered` foi entregue, `cancelled` foi cancelado.
-- Feriados: nacionais, estaduais de MS e 26/08 (aniversário de Campo Grande). Pontos facultativos ficam de fora.
-- O agente informa e encaminha. Ele não altera pedido, não dá desconto e não efetiva troca.
+- Reference date: orders go from October 2025 to March 2026. In normal use the agent uses the real date. For
+  the examples and the evaluation I pinned `EMPORIO_AGORA=2026-03-24T10:30` (right after the latest order) so
+  deadlines make sense and results are reproducible.
+- There is no delivery date in the data. For delivered orders, I use `estimated_delivery`.
+- I treat every order in the system as an online purchase, so the right of withdrawal applies.
+- Status: `pending` is awaiting payment, `confirmed` is paid and being prepared, `shipped` is on its way,
+  `delivered` was delivered, `cancelled` was cancelled.
+- Holidays: national, Mato Grosso do Sul state and August 26 (Campo Grande's anniversary). Optional holidays
+  are not included.
+- The agent informs and escalates. It doesn't change orders, give discounts or complete exchanges.
 
-## 6. Avaliação
+## 6. Evaluation
 
-- `pytest`: 39 testes sem rede. Cobrem preço, PIX e parcelamento, filtros do catálogo, detecção de acessório
-  ("cordas de violão" é acessório, "violão 7 cordas" não), verificação de identidade, prazos de troca,
-  horário e feriados, busca no manual e o loop do agente com um modelo falso nos dois provedores.
-- `scripts/avaliar_roteamento.py`: 15 perguntas com a ferramenta esperada e as proibidas. Com
-  `claude-haiku-5-5`, 15 de 15 corretas, incluindo os casos em que o certo é não chamar ferramenta nenhuma
-  (pedido sem identificação, assunto fora da loja, pedido de lista de clientes, saudação).
-- Conversas de exemplo:
+- `pytest`: 39 offline tests. They cover price, PIX and installments, catalog filters, accessory detection
+  ("cordas de violão" (guitar strings) is an accessory, "violão 7 cordas" (7-string guitar) is not), identity
+  checks, return deadlines, opening hours and holidays, manual search, and the agent loop with a fake model
+  on both providers.
+- `scripts/avaliar_roteamento.py`: 15 questions with the expected tool and the forbidden ones. With
+  `claude-haiku-5-5`, 15 out of 15 correct, including the cases where the right move is to call no tool at
+  all (order question without identification, off-topic question, request for a customer list, greeting).
+- Example conversations (in Portuguese, with an English summary at the top of each file):
 
-| # | Conversa | O que mostra |
+| # | Conversation | What it shows |
 |---|---|---|
-| 1 | [Violões até R$ 1.000](examples/01_catalogo_violoes_ate_1000.md) | filtro de preço, item esgotado com alternativas, opção que só cabe no orçamento pagando no PIX |
-| 2 | [Preço, Black Friday, endereço e horário](examples/02_preco_promocao_e_informacoes_da_loja.md) | dados e políticas na mesma conversa, recusa de promoção que não existe |
-| 3 | [Devolução e defeito](examples/03_devolucao_por_arrependimento_e_defeito.md) | caso não trivial: verificação, prazo de arrependimento vencido, garantia legal e chamado |
-| 4 | [Pedido atrasado](examples/04_pedido_atrasado_reclamacao.md) | rastreio, atraso detectado, reclamação registrada |
-| 5 | [Fora do escopo e privacidade](examples/05_fora_do_escopo_acessorios_e_privacidade.md) | acessórios, assunto fora da loja e tentativa de obter dados de outro cliente |
+| 1 | [Guitars up to R$ 1,000](examples/01_catalogo_violoes_ate_1000.md) | price filter, sold-out item with alternatives, an option that only fits the budget when paying by PIX |
+| 2 | [Price, Black Friday, address and hours](examples/02_preco_promocao_e_informacoes_da_loja.md) | data and policies in the same conversation, declining a promotion that doesn't exist |
+| 3 | [Return and defect](examples/03_devolucao_por_arrependimento_e_defeito.md) | non-trivial case: identity check, expired withdrawal period, legal warranty and a ticket |
+| 4 | [Late order](examples/04_pedido_atrasado_reclamacao.md) | tracking, detected delay, complaint logged |
+| 5 | [Off-topic and privacy](examples/05_fora_do_escopo_acessorios_e_privacidade.md) | accessories, unrelated request and an attempt to get another customer's data |
 
-Revisei as conversas comparando cada resposta com o que as ferramentas devolveram. Na primeira rodada
-achei quatro problemas, que corrigi e cobri com teste:
+I reviewed the conversations by comparing each answer with what the tools returned. The first round had four
+problems, which I fixed and covered with tests:
 
-| Problema | Causa | Correção |
+| Problem | Cause | Fix |
 |---|---|---|
-| O pedido 7 (Shelby SU-21S Soprano, um ukulele) foi chamado de saxofone, e o agente contradisse a cliente | a ferramenta de pedidos só mandava o nome do item | os itens vêm com a categoria |
-| O agente disse que a loja vende sopros e cordas orquestrais | usou a lista de categorias do cadastro, que inclui categorias vazias | o prompt recebe só as categorias com produto à venda |
-| "Não encontrei o endereço" numa pergunta sobre endereço e horário | a busca devolvia só trechos de horário | etapa de cobertura na busca |
-| Chamado aberto sem perguntar, e um segundo só para anotar o telefone | faltava regra para o encaminhamento | confirmar antes e abrir um chamado por assunto |
+| Order 7 (Shelby SU-21S Soprano, a ukulele) was called a saxophone, and the agent contradicted the customer | the order tool only returned the item name | items now include their category |
+| The agent said the store sells woodwinds and orchestral strings | it used the category list from the database, which includes empty ones | the prompt only gets categories with products for sale |
+| "I couldn't find the address" for a question about address and hours | search only returned opening-hours chunks | coverage step in the search |
+| Ticket opened without asking, then a second one just to add the phone number | no rule for escalation | confirm first, one ticket per issue |
 
-## 7. Limitações e próximos passos
+## 7. Limitations and next steps
 
-Limitações:
+Limitations:
 
-- A resposta final ainda é texto gerado pelo modelo. Ele pode reescrever errado um valor que a ferramenta
-  trouxe certo. Hoje isso é mitigado com valores já formatados e regra no prompt.
-- A verificação por e-mail ou telefone é fraca para produção.
-- A busca de produtos é por palavra. Pedidos subjetivos ("som mais aveludado") dependem do modelo traduzir
-  em filtros.
-- Não calculo frete para outras cidades; o manual não tem tabela.
-- O histórico em JSON local não serve para mais de uma instância.
-- A avaliação é pequena: 15 casos de roteamento e 5 conversas.
+- The final answer is still model-generated text. It could restate a value the tool got right in the wrong
+  way. Today this is mitigated with pre-formatted values and a prompt rule.
+- Checking identity by e-mail or phone is too weak for production.
+- Product search is keyword-based. Subjective requests ("a warmer sound") depend on the model turning them
+  into filters.
+- Shipping to other cities isn't calculated; the manual has no price table.
+- Local JSON history doesn't work with more than one instance.
+- The evaluation is small: 15 routing cases and 5 conversations.
 
-Com mais tempo:
+With more time:
 
-1. Checar a resposta final antes de enviar: todo valor em R$ e todo número de pedido precisa aparecer nos
-   resultados das ferramentas daquele turno.
-2. Uma avaliação maior, com umas 100 conversas e um LLM como juiz para fidelidade, tom e escopo, rodando a
-   cada mudança de prompt ou modelo.
-3. Integração com o WhatsApp, identificando o cliente pelo número (verificação melhor) e com histórico em
-   banco.
-4. Chamados num sistema de atendimento de verdade, com passagem da conversa para o humano.
-5. Busca híbrida no catálogo (BM25 + embeddings) se ele crescer.
-6. Mandar as inconsistências da seção 4 para a loja corrigir na origem.
-7. Monitoramento de custo, latência e taxa de encaminhamento.
+1. Check the final answer before sending: every R$ value and order number must appear in that turn's tool
+   results.
+2. A bigger evaluation, around 100 conversations with an LLM judge for faithfulness, tone and scope, run on
+   every prompt or model change.
+3. WhatsApp integration, identifying the customer by phone number (better verification) and keeping history
+   in a database.
+4. Tickets in a real helpdesk, with the conversation handed over to a person.
+5. Hybrid catalog search (BM25 + embeddings) if the catalog grows.
+6. Send the issues in section 4 back to the store so they get fixed at the source.
+7. Monitoring of cost, latency and escalation rate.
 
-## 8. Uso de assistentes de código
+## 8. Use of coding assistants
 
-Usei o Claude Code (agente de programação da Anthropic, modelo Claude Opus) durante o desafio todo, com
-acesso ao repositório e ao terminal. Usei como alguém para quem eu passo tarefas: eu defino o objetivo e o
-que considero pronto, decido produto e custo e confiro o resultado. A maior parte do código foi escrita por
-ele.
+I used Claude Code (Anthropic's coding agent, Claude Opus model) throughout the challenge, with access to the
+repository and the terminal. I used it like someone I hand tasks to: I set the goal and what "done" means,
+make the product and cost decisions, and check the result. Most of the code was written by it.
 
-Como foi o trabalho:
+How the work went:
 
-1. Antes de escrever código, pedi uma leitura completa do enunciado, do manual e dos CSVs procurando
-   pegadinhas. Isso virou a seção 4 e influenciou a arquitetura.
-2. Discutimos as alternativas (RAG, agente de SQL, function calling, frameworks) e escolhi ferramentas
-   fechadas com as contas em Python, porque o maior risco aqui é inventar preço ou vazar dado de cliente.
-3. Fui montando por partes (dados, manual, regras, ferramentas, agente), testando cada uma com os dados
-   reais e commitando. O histórico do Git mostra essa ordem.
-4. Comecei com o Gemini pela camada gratuita. Quando rodei de verdade e vi os problemas descritos na seção 3,
-   troquei para o Claude e pedi o modelo mais barato.
-5. Não publiquei os exemplos direto: comparei as conversas com os dados e corrigi o que estava errado
-   (seção 6).
+1. Before any code, I asked for a full read of the brief, the manual and the CSVs looking for traps. That
+   became section 4 and shaped the architecture.
+2. We went over the options (RAG, SQL agent, function calling, frameworks) and I chose closed tools with the
+   math in Python, because the biggest risk here is making up a price or leaking customer data.
+3. I built it in parts (data, manual, rules, tools, agent), testing each with the real data and committing.
+   The Git history shows that order.
+4. I started with Gemini for the free tier. When I ran it for real and saw the problems described in
+   section 3, I switched to Claude and asked for the cheapest model.
+5. I didn't publish the examples as they came out: I compared the conversations with the data and fixed what
+   was wrong (section 6).
 
-Erros do assistente que apareceram no caminho:
+Assistant mistakes that came up along the way:
 
-| Erro | Como apareceu |
+| Mistake | How it showed up |
 |---|---|
-| Datas vazias viravam `NaT` e quebravam a consulta de pedidos | teste da ferramenta com pedidos não enviados |
-| Um commit entrou com teste falhando (um `\| tail` escondia o código de saída do `pytest`) | conferindo a saída; depois disso, só commit com tudo passando |
-| Arquivos de build (`egg-info`) commitados | `git status` antes do commit seguinte |
-| A `thought_signature` do Gemini 3 era descartada (erro 400 no segundo turno) | teste com a API real |
-| Ukulele chamado de saxofone, categorias vazias citadas, endereço não encontrado, chamado duplicado | revisão das conversas (seção 6) |
+| Empty dates became `NaT` and broke the order lookup | testing the tool with orders not yet shipped |
+| A commit went in with a failing test (a `\| tail` hid `pytest`'s exit code) | checking the output; after that, commits only with all tests passing |
+| Build files (`egg-info`) committed | `git status` before the next commit |
+| Gemini 3's `thought_signature` was being dropped (400 error on the second turn) | testing against the real API |
+| Ukulele called a saxophone, empty categories mentioned, address not found, duplicate ticket | reviewing the conversations (section 6) |
 
-O assistente acelerou bastante o código, os testes e a documentação. Ficou comigo decidir o que priorizar,
-qual arquitetura usar, qual modelo e quando o resultado estava bom o suficiente.
+The assistant sped up the code, tests and documentation a lot. Deciding what to prioritize, which
+architecture and model to use, and when the result was good enough stayed with me.

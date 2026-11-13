@@ -1,12 +1,14 @@
-# Conversa 2 — Consulta de preço
+# Conversation 2: price, a promotion that doesn't exist, address and hours
 
-> Consulta de preço, promoção sazonal inexistente (Black Friday), endereço e horário
+> Price lookup, a seasonal promotion that is not active (Black Friday), and store address and opening hours in the same conversation.
 >
-> Modelo: `claude-haiku-5-5` · data de referência simulada: 24/03/2026 10:30 (America/Campo_Grande)
+> The conversation is in Portuguese, the store's language. Expand "tools called" to see each tool call and its raw result.
+>
+> Model: `claude-haiku-5-5` · simulated reference date: 24/03/2026 10:30 (America/Campo_Grande)
 
-**Cliente:** Quanto custa o Takamine GD20?
+**Customer:** Quanto custa o Takamine GD20?
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `buscar_produtos({"consulta": "Takamine GD20"})`
 
@@ -52,7 +54,7 @@ Quer que eu confira mais alguma opção de violão para você?
 
 ---
 
-**Cliente:** Não tem desconto de Black Friday nele não? Vi que vocês fazem.
+**Customer:** Não tem desconto de Black Friday nele não? Vi que vocês fazem.
 
 **Lia:** Não encontrei nenhuma promoção ativa para esse violão no sistema agora, então o preço é o de tabela: R$ 2.199,00, ou R$ 2.089,05 no PIX.
 
@@ -60,9 +62,9 @@ Não posso prometer desconto de campanha que não esteja no ar. Se quiser, posso
 
 ---
 
-**Cliente:** Beleza. Qual o endereço da loja? Vocês abrem sábado à tarde?
+**Customer:** Beleza. Qual o endereço da loja? Vocês abrem sábado à tarde?
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `consultar_politicas({"pergunta": "Qual o endereço da loja e qual o horário de funcionamento, incluindo sábado à tarde?"})`
 

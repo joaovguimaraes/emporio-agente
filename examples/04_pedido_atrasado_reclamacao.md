@@ -1,12 +1,14 @@
-# Conversa 4 — Status de pedido com previsão vencida e abertura de chamado para a equipe
+# Conversation 4: late order and complaint
 
-> Status de pedido com previsão vencida e abertura de chamado para a equipe
+> Order status with an expired delivery estimate, a complaint, and a ticket opened after the customer confirms.
 >
-> Modelo: `claude-haiku-5-5` · data de referência simulada: 24/03/2026 10:30 (America/Campo_Grande)
+> The conversation is in Portuguese, the store's language. Expand "tools called" to see each tool call and its raw result.
+>
+> Model: `claude-haiku-5-5` · simulated reference date: 24/03/2026 10:30 (America/Campo_Grande)
 
-**Cliente:** Oi, cadê meu pedido 8? Meu e-mail é anacarol.ferreira@coldmail.com
+**Customer:** Oi, cadê meu pedido 8? Meu e-mail é anacarol.ferreira@coldmail.com
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `consultar_pedidos({"identificacao": "anacarol.ferreira@coldmail.com", "numero_pedido": 8})`
 
@@ -47,7 +49,7 @@ Essa previsão já venceu há 24 dias, e peço desculpas pelo transtorno. Posso 
 
 ---
 
-**Cliente:** Já passou quase um mês da previsão, to bem chateada. Quero registrar uma reclamação.
+**Customer:** Já passou quase um mês da previsão, to bem chateada. Quero registrar uma reclamação.
 
 **Lia:** Entendo, Ana, e sinto muito que a entrega tenha atrasado tanto. Vou registrar sua reclamação para a equipe verificar o pedido 8 com a transportadora.
 
@@ -55,9 +57,9 @@ Pode me confirmar se quer que eu abra o chamado agora? Se sim, o retorno pode se
 
 ---
 
-**Cliente:** Pode usar esse e-mail mesmo.
+**Customer:** Pode usar esse e-mail mesmo.
 
-<details><summary>ferramentas chamadas</summary>
+<details><summary>tools called</summary>
 
 `encaminhar_para_equipe({"motivo": "reclamacao", "resumo": "Cliente Ana (anacarol.ferreira@coldmail.com) reclama do atraso na entrega do pedido 8 (1x Kala KA-C Concert Mogno, categoria Ukuleles, R$ 349,90, cartão de débito). Status: enviado, rastreio BRJL5544332BR. Previsão de entrega era 28/02/2026, vencida há 24 dias. Solicita verificação com a transportadora.", "contato_cliente": "anacarol.ferreira@coldmail.com"})`
 
