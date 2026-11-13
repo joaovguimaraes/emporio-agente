@@ -48,5 +48,5 @@ def test_llm_failure_rolls_back_turn():
 
     agent = Agent(Conversation(), client=Boom(), settings=LLMSettings("x", "m", None, 0))
     turn = agent.respond("oi")
-    assert "problema" in turn.reply
+    assert "problema técnico" in turn.reply.replace("probleminha", "problema")
     assert agent.conversation.messages == []

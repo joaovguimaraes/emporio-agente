@@ -68,7 +68,7 @@ class Agent:
             except Exception as exc:  # noqa: BLE001
                 log.exception("falha na chamada ao LLM")
                 self.conversation.rollback_to_last_user()
-                return Turn(f"{FALLBACK_MESSAGE}\n\n(detalhe técnico: {type(exc).__name__})", traces)
+                return Turn(FALLBACK_MESSAGE, traces)  # detalhe técnico vai para o log, não para o cliente
 
             msg = response.choices[0].message
             if not msg.tool_calls:
