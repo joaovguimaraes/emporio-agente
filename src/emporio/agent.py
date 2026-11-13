@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -62,7 +63,12 @@ class AnthropicBackend:
 
         self.settings = settings
         # max_retries cobre 429/5xx com backoff exponencial.
-        self.client = client or anthropic.Anthropic(api_key=settings.api_key, timeout=60, max_retries=4)
+        # Chaves de organização sem workspace exigem o header anthropic-workspace-id.
+        workspace = os.getenv("ANTHROPIC_WORKSPACE_ID", "").strip()
+        headers = {"anthropic-workspace-id": workspace} if workspace else None
+        self.client = client or anthropic.Anthropic(
+            api_key=settings.api_key, timeout=60, max_retries=4, default_headers=headers
+        )
         self.tools = [
             {
                 "name": t["function"]["name"],
