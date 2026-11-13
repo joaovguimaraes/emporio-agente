@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.sessions/
+runtime/
+.pytest_cache/
+.DS_Store
+__MACOSX/
