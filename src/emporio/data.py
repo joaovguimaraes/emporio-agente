@@ -125,7 +125,9 @@ def load(data_dir: Path = DATA_DIR) -> StoreData:
 
     # ---------- pedidos ----------
     for col in ("order_date", "estimated_delivery"):
-        orders[col] = pd.to_datetime(orders[col], errors="coerce").dt.date
+        # Datas vazias viram None (pd.NaT passaria em isinstance(x, date) e quebraria strftime).
+        parsed = pd.to_datetime(orders[col], errors="coerce")
+        orders[col] = [d.date() if pd.notna(d) else None for d in parsed]
     orders["notes"] = orders["notes"].fillna("")
     orders["tracking_code"] = orders["tracking_code"].fillna("")
 
