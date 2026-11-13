@@ -105,6 +105,12 @@ def test_shared_email_is_ambiguous_without_order_number():
     assert consultar_pedidos("(67) 98543-2109")["verificado"]
 
 
+def test_order_items_carry_category():
+    # Regressão: sem a categoria, o modelo leu "Shelby SU-21S Soprano" como saxofone (é um ukulele).
+    item = consultar_pedidos("leticia.rocha@jmail.com", 7)["pedidos"][0]["itens"][0]
+    assert "Ukuleles" in item
+
+
 def test_late_shipment_flagged():
     assert "alerta" in consultar_pedidos("anacarol.ferreira@coldmail.com", 8)["pedidos"][0]
 
@@ -153,3 +159,10 @@ def test_store_closed_on_sunday_and_holiday():
 def test_policy_retrieval(question, section):
     ids = [s.id for s, _ in index().search(question, k=3)]
     assert section in ids
+
+
+def test_policy_retrieval_compound_question():
+    # Regressão: os termos de horário dominavam e a seção de endereço (1.2) sumia do top-3.
+    q = "Qual o endereço da loja e o horário de funcionamento, incluindo sábado à tarde?"
+    ids = [s.id for s, _ in index().search(q)]
+    assert "1.2" in ids and "2" in ids

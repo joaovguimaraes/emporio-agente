@@ -60,6 +60,7 @@ SCENARIOS: list[tuple[str, str, list[str]]] = [
         [
             "Oi, cadê meu pedido 8? Meu e-mail é anacarol.ferreira@coldmail.com",
             "Já passou quase um mês da previsão, to bem chateada. Quero registrar uma reclamação.",
+            "Pode usar esse e-mail mesmo.",
         ],
     ),
     (

@@ -170,20 +170,32 @@ class PolicyIndex:
     def _terms(text: str) -> list[str]:
         return [stem(t) for t in tokens(text)]
 
-    def search(self, query: str, k: int = 3) -> list[tuple[Section, float]]:
+    def _score(self, i: int, terms: list[str]) -> float:
+        tf, dl = self.tf[i], len(self.docs[i])
+        score = 0.0
+        for t in terms:
+            if t in tf:
+                f = tf[t]
+                score += self.idf[t] * f * (self.k1 + 1) / (f + self.k1 * (1 - self.b + self.b * dl / self.avgdl))
+        return score
+
+    def search(self, query: str, k: int = 3, max_extra: int = 2) -> list[tuple[Section, float]]:
         q = self._terms(query)
-        scored = []
-        for i, tf in enumerate(self.tf):
-            dl = len(self.docs[i])
-            score = 0.0
-            for t in q:
-                if t in tf:
-                    f = tf[t]
-                    score += self.idf[t] * f * (self.k1 + 1) / (f + self.k1 * (1 - self.b + self.b * dl / self.avgdl))
-            if score > 0:
-                scored.append((self.sections[i], score))
-        scored.sort(key=lambda x: x[1], reverse=True)
-        return scored[:k]
+        ranked = sorted(
+            ((i, self._score(i, q)) for i in range(len(self.docs))), key=lambda x: x[1], reverse=True
+        )
+        chosen = [(i, s) for i, s in ranked[:k] if s > 0]
+
+        # Cobertura de intenções: em perguntas compostas ("endereço e horário de sábado?") os termos
+        # de uma intenção dominam o ranking e a outra some do top-k. Para cada termo relevante da
+        # pergunta que não aparece em nenhum trecho escolhido, inclui o melhor trecho para ele.
+        covered = set().union(*(self.tf[i].keys() for i, _ in chosen)) if chosen else set()
+        rare = sorted({t for t in q if t in self.idf and t not in covered}, key=lambda t: -self.idf[t])
+        for t in rare[:max_extra]:
+            best = max(range(len(self.docs)), key=lambda i: self._score(i, [t]))
+            if all(best != i for i, _ in chosen):
+                chosen.append((best, self._score(best, q)))
+        return [(self.sections[i], s) for i, s in chosen]
 
     def get(self, section_id: str) -> Section | None:
         return next((s for s in self.sections if s.id == section_id), None)

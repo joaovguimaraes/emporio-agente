@@ -267,14 +267,16 @@ def _match_customers(identificacao: str) -> pd.DataFrame:
 def _order_card(o: pd.Series) -> dict:
     s = store()
     items = s.order_items[s.order_items.order_id == o.order_id].merge(
-        s.products[["product_id", "name"]], on="product_id", how="left"
+        s.products[["product_id", "name", "category"]], on="product_id", how="left"
     )
     today = config.now().date()
     card: dict[str, Any] = {
         "numero_pedido": int(o.order_id),
         "data_pedido": o.order_date.strftime("%d/%m/%Y"),
         "status": ORDER_STATUS_PT.get(o.status, o.status),
-        "itens": [f"{int(i.quantity)}x {i['name']}" for _, i in items.iterrows()],
+        # A categoria evita leituras erradas do nome: "Shelby SU-21S Soprano" é um ukulele soprano,
+        # não um saxofone soprano (o modelo errou isso numa conversa de teste sem a categoria).
+        "itens": [f"{int(i.quantity)}x {i['name']} (categoria: {i.category})" for _, i in items.iterrows()],
         "total": brl(o.total_brl),
         "forma_pagamento": _payment_pt(o.payment_method),
     }

@@ -32,9 +32,10 @@ As conversas completas, com as ferramentas chamadas em cada turno, estão em [`e
 
 ## 1. Como rodar
 
-**Requisitos:** Python 3.10+ e uma chave de LLM. O padrão é o **Google Gemini**, que tem camada gratuita
-(gere a chave em <https://aistudio.google.com/apikey>). Qualquer provedor com API compatível com OpenAI
-também funciona (OpenAI, Groq, Ollama local etc.; veja `.env.example`).
+**Requisitos:** Python 3.10+ e uma chave de LLM. O padrão é o **Claude Haiku 5.5** da Anthropic (chave em
+<https://console.anthropic.com/settings/keys>). Sem chave paga, dá para usar o **Google Gemini**, que tem camada
+gratuita (<https://aistudio.google.com/apikey>), ou qualquer API compatível com OpenAI (OpenAI, Groq, Ollama
+local): veja a opção 2 do `.env.example`.
 
 ```bash
 git clone <url-deste-repositorio>
@@ -42,7 +43,7 @@ cd emporio-agente
 python -m venv .venv
 # Windows: .venv\Scripts\activate    |    Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env        # e preencha LLM_API_KEY
+cp .env.example .env        # e preencha ANTHROPIC_API_KEY (ou configure a opção 2)
 ```
 
 **Conversar com o agente (CLI):**
@@ -60,7 +61,7 @@ Dentro do chat: `/nova` reinicia a conversa e `/sair` encerra.
 
 | Comando | O que faz | Precisa de chave? |
 |---|---|---|
-| `pytest` | 34 testes das regras de negócio, ferramentas, retrieval e do loop do agente (com LLM falso) | Não |
+| `pytest` | 37 testes das regras de negócio, ferramentas, retrieval e do loop do agente (com LLMs falsos, nos dois provedores) | Não |
 | `python scripts/relatorio_qualidade_dados.py` | Lista todas as inconsistências encontradas nos CSVs e no manual | Não |
 | `python scripts/gerar_exemplos.py` | Roda as 5 conversas roteirizadas e regrava `examples/*.md` | Sim |
 | `python scripts/avaliar_roteamento.py` | Mede se o agente escolhe a ferramenta certa (15 casos) | Sim |
@@ -69,10 +70,12 @@ Dentro do chat: `/nova` reinicia a conversa e `/sair` encerra.
 
 | Variável | Descrição |
 |---|---|
-| `LLM_API_KEY` | Chave do provedor |
-| `LLM_BASE_URL` | Endpoint compatível com OpenAI (vazio = OpenAI) |
-| `LLM_MODEL` | Nome do modelo (padrão sugerido: `gemini-3.5-flash`) |
-| `LLM_TEMPERATURE` | Padrão `0.2` |
+| `LLM_PROVIDER` | `anthropic` (padrão, SDK oficial) ou `openai` (qualquer API compatível) |
+| `ANTHROPIC_API_KEY` | Chave da Anthropic |
+| `ANTHROPIC_WORKSPACE_ID` | Só se a chave não for de um workspace (a API devolve "not scoped to a workspace") |
+| `LLM_MODEL` | Modelo. Padrão `claude-haiku-5-5`; com Gemini, `gemini-3.5-flash` |
+| `LLM_EFFORT` | Só Anthropic: profundidade de raciocínio (`low` por padrão) |
+| `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_TEMPERATURE` | Só provedor `openai`: chave, endpoint e temperatura (`0.2`) |
 | `EMPORIO_AGORA` | Opcional. Fixa a data/hora "atual" (ex.: `2026-03-24T10:30`); veja a [seção 5](#5-suposições) |
 
 ---
@@ -142,7 +145,7 @@ chamada aparece no log (`--debug`) e nas transcrições.
   (nomes, e-mails, telefones). Com ferramentas fechadas, o modelo **não tem como** listar clientes ou consultar
   um pedido sem a verificação de identidade, independentemente do que o usuário escreva (prompt injection).
   Segurança por construção, não por instrução no prompt.
-- **Por que não LangChain/LangGraph?** É um único agente com 8 ferramentas. Um loop explícito de ~100 linhas
+- **Por que não LangChain/LangGraph?** É um único agente com 8 ferramentas. Um loop explícito de ~150 linhas
   (`agent.py`) é mais fácil de ler, depurar e testar (veja o teste com LLM falso em `tests/test_agent_loop.py`)
   do que camadas de abstração de um framework. Se o fluxo crescer (vários agentes, aprovação humana no meio,
   estados longos), LangGraph passaria a valer a pena.
@@ -178,12 +181,21 @@ LLMs erram contas e datas com frequência, e o próprio manual diz que informaç
 
 ### 3.4 Modelo e provedor
 
-- **Cliente:** SDK `openai` apontando para qualquer endpoint compatível (`LLM_BASE_URL`). Trocar de provedor é
-  só mudar o `.env`, sem lock-in.
-- **Modelo padrão: `gemini-3.5-flash`**, porque: (a) tem camada gratuita, então o avaliador roda o projeto sem
-  custo; (b) faz function calling paralelo de forma confiável; (c) é rápido, o que importa num canal de chat
-  com SLA de 5 minutos (seção 7.1); (d) responde bem em PT-BR.
-- **Temperatura 0.2:** atendimento pede consistência, não criatividade.
+- **Modelo padrão: Claude Haiku 5.5 (`claude-haiku-5-5`)**, via SDK oficial `anthropic`:
+  - **custo:** é o modelo mais barato da Anthropic (US$ 0,10 / US$ 0,50 por milhão de tokens de entrada/saída).
+    Um atendimento de loja é alto volume e baixa complexidade, e o trabalho pesado (contas, regras, filtros) já
+    está no Python. Não precisa de um modelo grande;
+  - **latência:** 2–3 s por resposta com ferramentas, o que importa num canal de chat com SLA de 5 minutos (seção 7.1);
+  - **effort `low`:** limita o raciocínio interno, adequado para perguntas de atendimento;
+  - **prompt caching:** persona, regras e índice do manual ficam num bloco de sistema em cache; a data/hora vai num
+    bloco separado, depois do breakpoint, para não invalidar o cache a cada minuto.
+- **Provedor alternativo (sem custo):** o mesmo loop roda sobre qualquer API compatível com OpenAI
+  (`LLM_PROVIDER=openai`): Gemini (camada gratuita), OpenAI, Groq, Ollama local. Os dois backends ficam em
+  `agent.py` e só diferem no formato das mensagens; ferramentas, prompt e histórico são os mesmos.
+- **Por que troquei do Gemini:** comecei com o Gemini pela camada gratuita e encontrei três problemas: o
+  `gemini-2.5-flash` não está mais disponível para chaves novas (404); o Gemini 3 exige que a `thought_signature`
+  de cada chamada de ferramenta seja devolvida no turno seguinte (senão HTTP 400; corrigido no backend); e na
+  camada gratuita houve 503 por demanda alta e respostas de minutos. O suporte foi mantido como alternativa.
 
 ### 3.5 Estratégia de prompt
 
@@ -285,14 +297,16 @@ armadilhas. `python scripts/relatorio_qualidade_dados.py` lista todas automatica
 
 ## 6. Avaliação
 
-- **Testes determinísticos (`pytest`, 34 testes, sem rede):** preço/PIX/parcelamento, filtros do catálogo
+- **Testes determinísticos (`pytest`, 39 testes, sem rede):** preço/PIX/parcelamento, filtros do catálogo
   (exclui esgotado e descontinuado), detecção de acessórios ("cordas de violão" ≠ "violão 7 cordas"),
   verificação de identidade e não vazamento, prazos de devolução e garantia, horários/feriados, retrieval das
-  seções certas do manual e o loop do agente com um LLM falso (incluindo rollback em caso de falha da API).
+  seções certas do manual e o loop do agente com LLMs falsos nos dois provedores (incluindo blocos de thinking
+  e `thought_signature` devolvidos intactos, recusa do modelo e rollback em caso de falha da API).
 - **Avaliação de roteamento (`scripts/avaliar_roteamento.py`, com LLM):** 15 perguntas com a ferramenta
   esperada e as proibidas (ex.: "Qual o status do pedido 5?" sem identificação **não** pode chamar
   `consultar_pedidos`; "Quem ganhou o jogo ontem?" não pode chamar nada).
-  Resultado com `gemini-3.5-flash`: **RESULTADO_ROTEAMENTO**.
+  Resultado com `claude-haiku-5-5` (effort `low`): **15/15 corretos**, inclusive os 4 casos em que o certo é
+  **não** chamar ferramenta (pedido sem identificação, assunto fora do escopo, lista de clientes, saudação).
 - **Conversas de exemplo (`examples/`):** 5 cenários, cada um com as chamadas de ferramenta e os resultados
   brutos expandíveis, para conferir que a resposta é fiel aos dados:
 
@@ -303,6 +317,16 @@ armadilhas. `python scripts/relatorio_qualidade_dados.py` lista todas automatica
 | 3 | [Devolução e defeito](examples/03_devolucao_por_arrependimento_e_defeito.md) | **Não trivial:** verificação de identidade, prazo de arrependimento expirado calculado, reclassificação para garantia legal e abertura de chamado |
 | 4 | [Pedido atrasado e reclamação](examples/04_pedido_atrasado_reclamacao.md) | Rastreio, detecção de atraso, empatia e encaminhamento com protocolo |
 | 5 | [Fora do escopo e privacidade](examples/05_fora_do_escopo_acessorios_e_privacidade.md) | Acessórios, assunto não relacionado e tentativa de prompt injection para obter dados de cliente |
+
+**O que a revisão das conversas encontrou (e foi corrigido).** Li cada transcrição comparando a resposta com o
+resultado bruto das ferramentas. A primeira rodada tinha quatro problemas, todos com teste de regressão:
+
+| Problema observado | Causa | Correção |
+|---|---|---|
+| O pedido 7 (*Shelby SU-21S **Soprano***, um ukulele) foi descrito como "saxofone soprano", e o agente **contradisse a cliente** | A ferramenta de pedidos devolvia só o nome do item; o modelo deduziu o instrumento pelo nome | Itens do pedido vêm com a categoria; regra no prompt para nunca contradizer o cliente sem checá-la |
+| Ao listar o que a loja vende, citou "instrumentos de sopro e cordas orquestrais" | O modelo usou a lista institucional de categorias (sem produtos) | O prompt recebe, a partir dos dados, só as categorias com itens à venda |
+| "Não encontrei o endereço no manual" numa pergunta composta (endereço + horário de sábado) | No BM25 com top-3 fixo, os termos de horário dominaram e a seção 1.2 ficou de fora | Etapa de cobertura: termo da pergunta que não aparece nos trechos escolhidos puxa o melhor trecho para ele |
+| Chamado aberto sem perguntar e, depois, um segundo chamado só para anotar o telefone | Faltava regra de fluxo para o encaminhamento | Confirmar com o cliente e o contato antes; um chamado por assunto |
 
 ---
 
